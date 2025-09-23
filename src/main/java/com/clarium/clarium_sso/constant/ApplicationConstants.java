@@ -1,0 +1,59 @@
+package com.clarium.clarium_sso.constant;
+
+public class ApplicationConstants {
+
+    //INFO MESSAGES
+    public static final String SIGNUP_SUCCESSFUL = "The Employee Data has been signed up Successfully";
+    public static final String LOGIN_SUCCESSFUL = "Login successful";
+    public static final String PROTECTED_ROUTE_ACCESS = "You accessed a protected route!";
+    public static final String TEST_ENDPOINT_SUCCESS = "Test endpoint works!";
+
+    //ERROR MESSAGES
+    public static final String ACCESS_DENIED = "Access Denied";
+    public static final String INVALID_EMAIL_OR_PASSWORD = "Invalid email or password";
+    public static final String INTERNAL_SERVER_ERROR_MESSAGE = "Internal server error - ";
+    public static final String FAILED = "FAILED";
+    public static final String AUTHENTICATION_REQUIRED  = "Authentication required";
+
+
+    public static final String USER_NOT_FOUND_WITH_EMAIL = "User not found with email: ";
+    public static final String USER_NOT_FOUND_WITH_EMAIL_ID = "User not found with this email id";
+    public static final String NO_DESIGNATION_ID_FOR_EMPLOYEE_ID = "No Designation Id found with this Employee id: ";
+    public static final String NO_DESIGNATION_FOUND_WITH_ID = "No Designation found with this designation Id :";
+    public static final String NO_EMPLOYEE_FOUND_WITH_EMAIL = "No employee found with email: ";
+    public static final String EMAIL_ALREADY_REGISTERED = "Email already registered. Please log in.";
+    public static final String USERNAME_ALREADY_TAKEN = "Username already taken. Please choose another.";
+    public static final String EMAIL_NOT_REGISTERED_AS_EMPLOYEE = "Email not registered as employee. Signup denied";
+
+    //ROLE CONSTANTS
+    public static final String ROLE_USER = "ROLE_USER";
+
+
+    //JWT CONSTANTS
+    public static final String AUTHORIZATION_HEADER = "Authorization";
+    public static final String TOKEN_PREFIX = "Bearer";
+    public static final String JWT_TOKEN_TYPE = "JWT";
+
+    //OAUTH ATTRIBUTE KEYS
+    public static final String OAUTH_ATTR_SUB = "sub";
+    public static final String OAUTH_ATTR_NAME = "name";
+    public static final String OAUTH_ATTR_EMAIL = "email";
+    public static final String OAUTH_ATTR_GIVEN_NAME = "given_name";
+    public static final String OAUTH_ATTR_FAMILY_NAME = "family_name";
+    public static final String OAUTH_ATTR_PICTURE = "picture";
+    public static final String AUTHENTICATION_FAILED = "Authentication Failed";
+
+    //COOKIES
+    public static final String JSESSION_ID= "JSESSIONID";
+    public static final String XSRF_TOKEN= "XSRF-TOKEN";
+
+
+
+
+
+
+
+
+
+}
+ 

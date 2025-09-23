@@ -1,0 +1,239 @@
+package com.clarium.clarium_sso.config;
+
+import com.clarium.clarium_sso.security.JwtAuthFilter;
+import com.clarium.clarium_sso.service.UserService;
+import com.clarium.clarium_sso.util.JwtUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import static com.clarium.clarium_sso.constant.ApplicationConstants.ACCESS_DENIED;
+
+@Configuration
+public class SecurityConfig {
+
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
+    private final JwtAuthFilter jwtAuthFilter;
+    private final UserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final UserService userService;
+
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter,
+                          UserDetailsService userDetailsService,
+                          PasswordEncoder passwordEncoder,
+                          JwtUtil jwtUtil,
+                          @Lazy UserService userService) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.userDetailsService = userDetailsService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+        requestHandler.setCsrfRequestAttributeName(null);
+
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(requestHandler)
+                        .ignoringRequestMatchers(
+                                "/custom-login/auth/signup",
+                                "/custom-login/auth/signin",
+                                "/custom-login/auth/logout",
+                                "/logout",
+                                "/api/auth/logout",
+                                "/api/auth/user-attributes",
+                                "/api/auth/validate",
+                                "/api/auth/refresh-token"
+                        )
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/custom-login/auth/signup",
+                                "/custom-login/auth/signin",
+                                "/custom-login/auth/logout",
+                                "/login/**",
+                                "/oauth2/**",
+                                "/logout",
+                                "/api/auth/logout",
+                                "/api/auth/validate",
+                                "/api/auth/refresh-token"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(customAuthenticationEntryPoint())
+                        .accessDeniedHandler(customAccessDeniedHandler())
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler())
+                        .failureUrl("http://localhost:5050/login?error=true")
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler(customLogoutSuccessHandler())
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN", "JWT")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .permitAll()
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(1)
+                        .maxSessionsPreventsLogin(false)
+                )
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
+    @Bean
+    public LogoutSuccessHandler customLogoutSuccessHandler() {
+        return (request, response, authentication) -> {
+            clearCookie(response, "JWT");
+            clearCookie(response, "JSESSIONID");
+            clearCookie(response, "XSRF-TOKEN");
+            if (request.getSession(false) != null) request.getSession().invalidate();
+
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.setStatus(HttpServletResponse.SC_OK);
+            String jsonResponse = "{\"message\":\"Logout successful\",\"timestamp\":\"" +
+                    System.currentTimeMillis() + "\"}";
+            response.getWriter().write(jsonResponse);
+            response.getWriter().flush();
+        };
+    }
+
+    private void clearCookie(HttpServletResponse response, String name) {
+        Cookie cookie = new Cookie(name, "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false); // localhost
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint customAuthenticationEntryPoint() {
+        return (request, response, authException) -> {
+            String uri = request.getRequestURI();
+            if (uri.startsWith("/custom-login/auth/") || uri.startsWith("/api/")) {
+                response.setContentType("application/json");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("{\"error\":\"Authentication required\",\"message\":\"" + authException.getMessage() + "\"}");
+            } else {
+                response.sendRedirect("/oauth2/authorization/azure");
+            }
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        return (request, response, ex) -> {
+            String uri = request.getRequestURI();
+            if (uri.startsWith("/custom-login/auth/") || uri.startsWith("/api/")) {
+                response.setContentType("application/json");
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write("{\"error\":\"Access denied\",\"message\":\"" + ex.getMessage() + "\"}");
+            } else {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write(ACCESS_DENIED);
+            }
+        };
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler oAuth2SuccessHandler() {
+        return (request, response, authentication) -> {
+            String email = ((org.springframework.security.oauth2.core.user.DefaultOAuth2User) authentication.getPrincipal())
+                    .getAttribute("email");
+            int empId = 0;
+            String designation = "Unknown";
+            try {
+                empId = userService.getEmpIdByEmail(email);
+                UUID desgnId = userService.getDesgnIdByEmpId(empId);
+                designation = userService.getDesignationById(desgnId);
+            } catch (Exception ignored) {}
+
+            String jwtToken = jwtUtil.generateToken(email, empId, designation);
+
+            Cookie jwtCookie = new Cookie("JWT", jwtToken);
+            jwtCookie.setHttpOnly(true);
+            jwtCookie.setSecure(false); // localhost
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(60 * 60);
+            response.addCookie(jwtCookie);
+
+            response.sendRedirect("http://localhost:5050/dashboard");
+        };
+    }
+}
