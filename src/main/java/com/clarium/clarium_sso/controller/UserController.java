@@ -1,7 +1,9 @@
 package com.clarium.clarium_sso.controller;
 
+import com.clarium.clarium_sso.dto.ForgotPasswordRequest;
 import com.clarium.clarium_sso.dto.LoginRequest;
 import com.clarium.clarium_sso.dto.LoginResponse;
+import com.clarium.clarium_sso.dto.Response;
 import com.clarium.clarium_sso.dto.SignupResponse;
 import com.clarium.clarium_sso.model.User;
 import com.clarium.clarium_sso.service.LogoutService;
@@ -34,8 +36,6 @@ public class UserController {
         this.logoutService = logoutService;
     }
 
-
-
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> register(@RequestBody User user) {
         User savedUser = userService.register(user);
@@ -47,6 +47,12 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletResponse response) {
         LoginResponse loginResponse = userService.loginWithJwt(req.email(), req.password(), response);
         return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Response> sendPasswordResetOtp(@RequestBody ForgotPasswordRequest request) {
+        Response response = userService.sendPasswordResetOtp(request.email());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")

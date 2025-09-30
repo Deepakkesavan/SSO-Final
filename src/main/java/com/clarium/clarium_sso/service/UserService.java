@@ -1,6 +1,7 @@
 package com.clarium.clarium_sso.service;
 
 import com.clarium.clarium_sso.dto.LoginResponse;
+import com.clarium.clarium_sso.dto.Response;
 import com.clarium.clarium_sso.exception.*;
 import com.clarium.clarium_sso.model.*;
 import com.clarium.clarium_sso.repository.*;
@@ -12,9 +13,15 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.UUID;
 
 import static com.clarium.clarium_sso.constant.ApplicationConstants.*;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.MESSAGE_PASSWORD_RESET_PREFIX;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.MESSAGE_VALIDITY_SUFFIX;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.RESPONSE_PASSWORD_RESET_SENT;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.SUBJECT_PASSWORD_RESET;
 
 @Service
 public class UserService {
@@ -26,6 +33,8 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final OtpRepository otpRepository;
+    private final EmailService emailService;
 
     public UserService(
             JwtUtil jwtUtil,
@@ -34,7 +43,9 @@ public class UserService {
             DesignationRepository designationRepository,
             WorkInfoRepository workInfoRepository,
             UserRepository userRepo,
-            EmployeeRepository employeeRepository
+            EmployeeRepository employeeRepository,
+            OtpRepository otpRepository,
+            EmailService emailService
     ) {
         this.authenticationManager = authenticationManager;
         this.workInfoRepository = workInfoRepository;
@@ -43,6 +54,8 @@ public class UserService {
         this.designationRepository = designationRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.otpRepository = otpRepository;
+        this.emailService = emailService;
     }
 
     // -------------------- REGISTER --------------------
@@ -78,6 +91,24 @@ public class UserService {
         return designationRepository.findById(id)
                 .map(Designation::getDesignation)
                 .orElseThrow(() -> new ResourceNotFoundException(NO_DESIGNATION_FOUND_WITH_ID + id));
+    }
+
+    public Response sendPasswordResetOtp(String email) {
+
+        if (!userRepo.existsByEmail(email)) {
+            throw new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL_ID + email);
+        }
+
+        String otpCode = String.valueOf(100000 + new Random().nextInt(900000));
+        otpRepository.findByEmail(email);
+        Otp otp = new Otp();
+        otp.setEmail(email);
+        otp.setOtpCode(otpCode);
+        otp.setExpiry(LocalDateTime.now().plusMinutes(10));
+        otpRepository.save(otp);
+
+        emailService.sendOtp(email, otpCode, SUBJECT_PASSWORD_RESET, MESSAGE_PASSWORD_RESET_PREFIX, MESSAGE_VALIDITY_SUFFIX);
+        return new Response(RESPONSE_PASSWORD_RESET_SENT, email);
     }
 
     // -------------------- LOGIN WITH JWT --------------------

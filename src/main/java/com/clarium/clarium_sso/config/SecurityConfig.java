@@ -48,7 +48,6 @@ public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final UserService userService;
 
-
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
                           UserDetailsService userDetailsService,
                           PasswordEncoder passwordEncoder,
@@ -72,27 +71,24 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(requestHandler)
                         .ignoringRequestMatchers(
-                                "/custom-login/auth/signup",
-                                "/custom-login/auth/signin",
-                                "/custom-login/auth/logout",
-                                "/logout",
-                                "/api/auth/logout",
-                                "/api/auth/user-attributes",
-                                "/api/auth/validate",
-                                "/api/auth/refresh-token"
+                                "/custom-login/auth/**",
+                                "/api/auth/**",
+                                "/login/**",
+                                "/oauth2/**",
+                                "/logout"
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/custom-login/auth/signup",
-                                "/custom-login/auth/signin",
-                                "/custom-login/auth/logout",
+                                "/custom-login/auth/**",
+                                "/api/auth/validate",
+                                "/api/auth/refresh-token",
+                                "/api/auth/logout",
+                                "/api/auth/failure",
                                 "/login/**",
                                 "/oauth2/**",
                                 "/logout",
-                                "/api/auth/logout",
-                                "/api/auth/validate",
-                                "/api/auth/refresh-token"
+                                "/error"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -107,13 +103,14 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(customLogoutSuccessHandler())
-                        .deleteCookies("JSESSIONID", "XSRF-TOKEN", "JWT")
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN", "JWT", "REFRESH_TOKEN")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .permitAll()
                 )
+                // Fixed session management
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Changed to STATELESS for JWT
                         .maximumSessions(1)
                         .maxSessionsPreventsLogin(false)
                 )
@@ -131,16 +128,28 @@ public class SecurityConfig {
     @Bean
     public LogoutSuccessHandler customLogoutSuccessHandler() {
         return (request, response, authentication) -> {
+            // Clear all authentication cookies
             clearCookie(response, "JWT");
             clearCookie(response, "JSESSIONID");
             clearCookie(response, "XSRF-TOKEN");
-            if (request.getSession(false) != null) request.getSession().invalidate();
+            clearCookie(response, "REFRESH_TOKEN");
+
+            // Invalidate session if exists
+            if (request.getSession(false) != null) {
+                request.getSession().invalidate();
+            }
+
+            // Set no-cache headers
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setHeader("Expires", "0");
 
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
             response.setStatus(HttpServletResponse.SC_OK);
+
             String jsonResponse = "{\"message\":\"Logout successful\",\"timestamp\":\"" +
-                    System.currentTimeMillis() + "\"}";
+                    System.currentTimeMillis() + "\",\"status\":\"SUCCESS\"}";
             response.getWriter().write(jsonResponse);
             response.getWriter().flush();
         };
@@ -149,20 +158,22 @@ public class SecurityConfig {
     private void clearCookie(HttpServletResponse response, String name) {
         Cookie cookie = new Cookie(name, "");
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // localhost
+        cookie.setSecure(false); // Set to true in production with HTTPS
         cookie.setPath("/");
         cookie.setMaxAge(0);
+        cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Set-Cookie"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -186,12 +197,17 @@ public class SecurityConfig {
     public AuthenticationEntryPoint customAuthenticationEntryPoint() {
         return (request, response, authException) -> {
             String uri = request.getRequestURI();
-            if (uri.startsWith("/custom-login/auth/") || uri.startsWith("/api/")) {
-                response.setContentType("application/json");
+
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            if (uri.startsWith("/api/") || uri.startsWith("/custom-login/")) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("{\"error\":\"Authentication required\",\"message\":\"" + authException.getMessage() + "\"}");
+                response.getWriter().write("{\"error\":\"Authentication required\",\"message\":\"" +
+                        authException.getMessage() + "\",\"status\":\"UNAUTHORIZED\"}");
             } else {
-                response.sendRedirect("/oauth2/authorization/azure");
+                response.setStatus(HttpServletResponse.SC_FOUND);
+                response.setHeader("Location", "/oauth2/authorization/azure");
             }
         };
     }
@@ -200,10 +216,14 @@ public class SecurityConfig {
     public AccessDeniedHandler customAccessDeniedHandler() {
         return (request, response, ex) -> {
             String uri = request.getRequestURI();
-            if (uri.startsWith("/custom-login/auth/") || uri.startsWith("/api/")) {
-                response.setContentType("application/json");
+
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            if (uri.startsWith("/api/") || uri.startsWith("/custom-login/")) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.getWriter().write("{\"error\":\"Access denied\",\"message\":\"" + ex.getMessage() + "\"}");
+                response.getWriter().write("{\"error\":\"Access denied\",\"message\":\"" +
+                        ex.getMessage() + "\",\"status\":\"FORBIDDEN\"}");
             } else {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.getWriter().write(ACCESS_DENIED);
@@ -214,26 +234,37 @@ public class SecurityConfig {
     @Bean
     public AuthenticationSuccessHandler oAuth2SuccessHandler() {
         return (request, response, authentication) -> {
-            String email = ((org.springframework.security.oauth2.core.user.DefaultOAuth2User) authentication.getPrincipal())
-                    .getAttribute("email");
-            int empId = 0;
-            String designation = "Unknown";
             try {
-                empId = userService.getEmpIdByEmail(email);
-                UUID desgnId = userService.getDesgnIdByEmpId(empId);
-                designation = userService.getDesignationById(desgnId);
-            } catch (Exception ignored) {}
+                String email = ((org.springframework.security.oauth2.core.user.DefaultOAuth2User)
+                        authentication.getPrincipal()).getAttribute("email");
 
-            String jwtToken = jwtUtil.generateToken(email, empId, designation);
+                int empId = 0;
+                String designation = "Unknown";
 
-            Cookie jwtCookie = new Cookie("JWT", jwtToken);
-            jwtCookie.setHttpOnly(true);
-            jwtCookie.setSecure(false); // localhost
-            jwtCookie.setPath("/");
-            jwtCookie.setMaxAge(60 * 60);
-            response.addCookie(jwtCookie);
+                try {
+                    empId = userService.getEmpIdByEmail(email);
+                    UUID desgnId = userService.getDesgnIdByEmpId(empId);
+                    designation = userService.getDesignationById(desgnId);
+                } catch (Exception e) {
+                    System.err.println("Error getting employee info: " + e.getMessage());
+                }
 
-            response.sendRedirect("http://localhost:5050/dashboard");
+                String jwtToken = jwtUtil.generateToken(email, empId, designation);
+
+                Cookie jwtCookie = new Cookie("JWT", jwtToken);
+                jwtCookie.setHttpOnly(true);
+                jwtCookie.setSecure(false); // Set to true in production
+                jwtCookie.setPath("/");
+                jwtCookie.setMaxAge(60 * 60 * 2); // 2 hours
+                jwtCookie.setAttribute("SameSite", "Lax");
+                response.addCookie(jwtCookie);
+
+                response.sendRedirect("http://localhost:5050/dashboard");
+
+            } catch (Exception e) {
+                System.err.println("OAuth2 success handler error: " + e.getMessage());
+                response.sendRedirect("http://localhost:5050/login?error=oauth_processing_failed");
+            }
         };
     }
 }

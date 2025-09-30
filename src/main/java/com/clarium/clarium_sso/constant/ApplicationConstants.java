@@ -7,6 +7,12 @@ public class ApplicationConstants {
     public static final String LOGIN_SUCCESSFUL = "Login successful";
     public static final String PROTECTED_ROUTE_ACCESS = "You accessed a protected route!";
     public static final String TEST_ENDPOINT_SUCCESS = "Test endpoint works!";
+    public static final String STATUS_VERIFIED = "VERIFIED";
+    public static final String RESPONSE_PASSWORD_RESET_SENT = "Password reset OTP sent to your email";
+    public static final String RESPONSE_OTP_VERIFIED = "OTP verified successfully";
+    public static final String REGISTRATION_SUCCESSFUL = "Registration successful!";
+    public static final String PASSWORD_RESET_SUCCESS = "Password reset successful";
+    public static final String OTP_SENT = "OTP sent to your email. Please verify to complete registration.";
 
     //ERROR MESSAGES
     public static final String ACCESS_DENIED = "Access Denied";
@@ -48,7 +54,13 @@ public class ApplicationConstants {
     public static final String XSRF_TOKEN= "XSRF-TOKEN";
 
 
-
+    //OTP CONSTANTS
+    public static final int OTP_EXPIRY_MINUTES = 10;
+    public static final String SUBJECT_PASSWORD_RESET = "Your Password Reset OTP";
+    public static final String SUBJECT_REGISTRATION = "Your Registration OTP";
+    public static final String MESSAGE_PASSWORD_RESET_PREFIX = "Your OTP for Password reset is: ";
+    public static final String MESSAGE_VALIDITY_SUFFIX = "\nValid for " + OTP_EXPIRY_MINUTES + " minutes.";
+    public static final String MESSAGE_REGISTRATION_PREFIX = "Your OTP for registration is: ";
 
 
 

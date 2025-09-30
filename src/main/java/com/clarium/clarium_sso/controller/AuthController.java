@@ -3,14 +3,12 @@ package com.clarium.clarium_sso.controller;
 import com.clarium.clarium_sso.dto.AzureUserAttributes;
 import com.clarium.clarium_sso.dto.LoginFailure;
 import com.clarium.clarium_sso.dto.UserAttributes;
-import com.clarium.clarium_sso.model.User;
 import com.clarium.clarium_sso.repository.UserRepository;
 import com.clarium.clarium_sso.service.AuthService;
 import com.clarium.clarium_sso.service.CustomUserDetails;
 import com.clarium.clarium_sso.service.LogoutService;
 import com.clarium.clarium_sso.service.UserService;
 import com.clarium.clarium_sso.util.JwtUtil;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,13 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
