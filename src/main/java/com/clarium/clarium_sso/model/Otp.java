@@ -18,7 +18,6 @@ public class Otp {
     private UUID id;
     private String email;
     private String username;
-    private String password;
     private String otpCode;
     private LocalDateTime expiry;
 }

@@ -8,6 +8,7 @@ import com.clarium.clarium_sso.repository.*;
 import com.clarium.clarium_sso.util.JwtUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -93,7 +94,7 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException(NO_DESIGNATION_FOUND_WITH_ID + id));
     }
 
-    public Response sendPasswordResetOtp(String email) {
+    public Response sendPasswordResetOtp(String email, HttpSession session) {
 
         if (!userRepo.existsByEmail(email)) {
             throw new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL_ID + email);
@@ -101,29 +102,111 @@ public class UserService {
 
         String otpCode = String.valueOf(100000 + new Random().nextInt(900000));
         otpRepository.findByEmail(email);
+
         Otp otp = new Otp();
         otp.setEmail(email);
         otp.setOtpCode(otpCode);
         otp.setExpiry(LocalDateTime.now().plusMinutes(10));
         otpRepository.save(otp);
 
+        session.setAttribute("user_email", email);
+
         emailService.sendOtp(email, otpCode, SUBJECT_PASSWORD_RESET, MESSAGE_PASSWORD_RESET_PREFIX, MESSAGE_VALIDITY_SUFFIX);
         return new Response(RESPONSE_PASSWORD_RESET_SENT, email);
     }
 
+    public Response verifyPasswordResetOtp(String otpCode, HttpSession session ) {
+        // Get email from session
+        String email = (String) session.getAttribute("user_email");
+
+        if (email == null) {
+            throw new SessionExpiredException(SESSION_EXPIRED);
+        }
+
+        Otp otp = otpRepository.findByEmail(email).orElse(null);
+
+        if (otp == null) {
+            throw new OtpExpiredException(ERROR_OTP_NOT_FOUND);
+        }
+
+        if (LocalDateTime.now().isAfter(otp.getExpiry())) {
+            otpRepository.delete(otp);
+            session.removeAttribute("user_email"); // Clean up session
+            throw new OtpExpiredException(ERROR_OTP_EXPIRED);
+        }
+
+        if (!otp.getOtpCode().equals(otpCode)) {
+            throw new InvalidOtpException(ERROR_INVALID_OTP);
+        }
+
+        otp.setUsername(STATUS_VERIFIED);
+        otpRepository.save(otp);
+
+        return new Response(RESPONSE_OTP_VERIFIED, email);
+    }
+
+    public Response resetPassword(String newPassword, HttpSession session) {
+        // Get email from session
+        String email = (String) session.getAttribute("user_email");
+
+        if (email == null) {
+            throw new SessionExpiredException(SESSION_EXPIRED);
+        }
+
+        Otp otp = otpRepository.findByEmail(email).orElse(null);
+
+        if (otp == null) {
+            throw new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL_ID + email);
+        }
+
+        if (LocalDateTime.now().isAfter(otp.getExpiry())) {
+            otpRepository.delete(otp);
+            session.removeAttribute("user_email"); // Clean up session
+            throw new OtpExpiredException(ERROR_OTP_EXPIRED);
+        }
+
+        if (!STATUS_VERIFIED.equals(otp.getUsername())) {
+            throw new RuntimeException(ERROR_VERIFY_OTP_FIRST);
+        }
+
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL_ID + email));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        user.setFirstTimeLogin(false);
+
+        userRepo.save(user);
+        otpRepository.delete(otp);
+
+        session.removeAttribute("user_email");
+
+        return new Response(PASSWORD_RESET_SUCCESS, email);
+    }
+
+
     // -------------------- LOGIN WITH JWT --------------------
-    public LoginResponse loginWithJwt(String email, String rawPassword, HttpServletResponse response) {
+    public LoginResponse loginWithJwt(String username, String rawPassword, HttpServletResponse response) {
         try {
             // Authenticate user
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, rawPassword)
+                    new UsernamePasswordAuthenticationToken(username, rawPassword)
             );
 
-            Employee user = employeeRepository.findByEmail(email)
-                    .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL_ID + email));
+            User user = userRepo.findByUsername(username)
+                    .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL_ID + username));
 
+
+            //CHECK FOR FIRST TIME LOGIN
+            if (user.getFirstTimeLogin() != null && user.getFirstTimeLogin()) {
+                return new LoginResponse(
+                        "FIRST_TIME_LOGIN",  // Special status
+                        0,  // No empId yet
+                        "Please change your password first"  // Message instead of designation
+                );
+            }
             // Get empId & designation
-            int empId = getEmpIdByEmail(user.getEmail());
+            int empId = Integer.parseInt(username);
             UUID desgnId = getDesgnIdByEmpId(empId);
             String designation = getDesignationById(desgnId);
 

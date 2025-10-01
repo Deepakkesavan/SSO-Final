@@ -59,8 +59,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: deepakramoorthy@gmail.com
-    password: hsjgrapcadovhgrv
+    username: noreply.clarium.sso@gmail.com
+    password: tswdzlzgfwyaqank
     properties:
       mail:
         smtp:
@@ -93,5 +93,8 @@ logging:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
     com.clarium.clarium_sso.service.LogoutService: DEBUG
+
+app:
+  blocked-url: "http://localhost:8080"
 
 

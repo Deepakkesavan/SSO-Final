@@ -4,19 +4,20 @@ import com.clarium.clarium_sso.dto.ForgotPasswordRequest;
 import com.clarium.clarium_sso.dto.LoginRequest;
 import com.clarium.clarium_sso.dto.LoginResponse;
 import com.clarium.clarium_sso.dto.Response;
+import com.clarium.clarium_sso.dto.SetNewPasswordRequest;
 import com.clarium.clarium_sso.dto.SignupResponse;
+import com.clarium.clarium_sso.dto.VerifyOtpRequest;
 import com.clarium.clarium_sso.model.User;
 import com.clarium.clarium_sso.service.LogoutService;
 import com.clarium.clarium_sso.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
@@ -45,13 +46,25 @@ public class UserController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletResponse response) {
-        LoginResponse loginResponse = userService.loginWithJwt(req.email(), req.password(), response);
+        LoginResponse loginResponse = userService.loginWithJwt(req.username(), req.password(), response);
         return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Response> sendPasswordResetOtp(@RequestBody ForgotPasswordRequest request) {
-        Response response = userService.sendPasswordResetOtp(request.email());
+    public ResponseEntity<Response> sendPasswordResetOtp(@RequestBody ForgotPasswordRequest request, HttpSession session) {
+        Response response = userService.sendPasswordResetOtp(request.email(), session);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/verify-reset-otp")
+    public ResponseEntity<Response> verifyPasswordResetOtp(@RequestBody VerifyOtpRequest request, HttpSession session) {
+        Response response = userService.verifyPasswordResetOtp(request.otp(), session);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/set-new-password")
+    public ResponseEntity<Response> setNewPassword(@RequestBody SetNewPasswordRequest request, HttpSession session) {
+        Response response = userService.resetPassword(request.newPassword(), session);
         return ResponseEntity.ok(response);
     }
 
