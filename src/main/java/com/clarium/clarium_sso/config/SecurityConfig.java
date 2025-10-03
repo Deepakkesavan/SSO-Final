@@ -85,6 +85,7 @@ public class SecurityConfig {
                                 "/api/auth/refresh-token",
                                 "/api/auth/logout",
                                 "/api/auth/failure",
+                                "/api/auth/auth-status",
                                 "/login/**",
                                 "/oauth2/**",
                                 "/logout",
@@ -110,7 +111,7 @@ public class SecurityConfig {
                 )
                 // Fixed session management
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Changed to STATELESS for JWT
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Changed to STATELESS for JWT
                         .maximumSessions(1)
                         .maxSessionsPreventsLogin(false)
                 )
