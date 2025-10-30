@@ -1,5 +1,6 @@
 package com.clarium.clarium_sso.config;
 
+import com.clarium.clarium_sso.constant.ApplicationConstants;
 import com.clarium.clarium_sso.security.JwtAuthFilter;
 import com.clarium.clarium_sso.service.UserService;
 import com.clarium.clarium_sso.util.JwtUtil;
@@ -35,9 +36,16 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.clarium.clarium_sso.constant.ApplicationConstants.ACCESS_DENIED;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.APPLICATION_CONSTANTS;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.FAILURE_URL;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.REFRESH_TOKEN;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.SAME_SITE;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.UTF_8;
+import static com.clarium.clarium_sso.constant.ApplicationConstants.XSRF_TOKEN;
 
 @Configuration
 public class SecurityConfig {
+
 
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
@@ -99,12 +107,12 @@ public class SecurityConfig {
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler())
-                        .failureUrl("http://localhost:5050/login?error=true")
+                        .failureUrl(FAILURE_URL)
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(customLogoutSuccessHandler())
-                        .deleteCookies("JSESSIONID", "XSRF-TOKEN", "JWT", "REFRESH_TOKEN")
+                        .deleteCookies(ApplicationConstants.JSESSION_ID, XSRF_TOKEN, ApplicationConstants.JWT, REFRESH_TOKEN)
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .permitAll()
@@ -130,10 +138,10 @@ public class SecurityConfig {
     public LogoutSuccessHandler customLogoutSuccessHandler() {
         return (request, response, authentication) -> {
             // Clear all authentication cookies
-            clearCookie(response, "JWT");
-            clearCookie(response, "JSESSIONID");
-            clearCookie(response, "XSRF-TOKEN");
-            clearCookie(response, "REFRESH_TOKEN");
+            clearCookie(response, ApplicationConstants.JWT);
+            clearCookie(response, ApplicationConstants.JSESSION_ID);
+            clearCookie(response, XSRF_TOKEN);
+            clearCookie(response, REFRESH_TOKEN);
 
             // Invalidate session if exists
             if (request.getSession(false) != null) {
@@ -145,8 +153,8 @@ public class SecurityConfig {
             response.setHeader("Pragma", "no-cache");
             response.setHeader("Expires", "0");
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+            response.setContentType(APPLICATION_CONSTANTS);
+            response.setCharacterEncoding(UTF_8);
             response.setStatus(HttpServletResponse.SC_OK);
 
             String jsonResponse = "{\"message\":\"Logout successful\",\"timestamp\":\"" +
@@ -162,7 +170,7 @@ public class SecurityConfig {
         cookie.setSecure(false); // Set to true in production with HTTPS
         cookie.setPath("/");
         cookie.setMaxAge(0);
-        cookie.setAttribute("SameSite", "Lax");
+        cookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
         response.addCookie(cookie);
     }
 
@@ -199,10 +207,10 @@ public class SecurityConfig {
         return (request, response, authException) -> {
             String uri = request.getRequestURI();
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+            response.setContentType(APPLICATION_CONSTANTS);
+            response.setCharacterEncoding(UTF_8);
 
-            if (uri.startsWith("/api/") || uri.startsWith("/custom-login/")) {
+            if (uri.startsWith("ssoapi/api/") || uri.startsWith("/custom-login/")) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("{\"error\":\"Authentication required\",\"message\":\"" +
                         authException.getMessage() + "\",\"status\":\"UNAUTHORIZED\"}");
@@ -218,8 +226,8 @@ public class SecurityConfig {
         return (request, response, ex) -> {
             String uri = request.getRequestURI();
 
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
+            response.setContentType(APPLICATION_CONSTANTS);
+            response.setCharacterEncoding(UTF_8);
 
             if (uri.startsWith("/api/") || uri.startsWith("/custom-login/")) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -250,17 +258,31 @@ public class SecurityConfig {
                     System.err.println("Error getting employee info: " + e.getMessage());
                 }
 
+                // Generate access token
                 String jwtToken = jwtUtil.generateToken(email, empId, designation);
 
-                Cookie jwtCookie = new Cookie("JWT", jwtToken);
+                // Generate refresh token
+                String refreshToken = jwtUtil.generateRefreshToken(email, empId, designation);
+
+                // Set JWT cookie
+                Cookie jwtCookie = new Cookie(ApplicationConstants.JWT, jwtToken);
                 jwtCookie.setHttpOnly(true);
                 jwtCookie.setSecure(false); // Set to true in production
                 jwtCookie.setPath("/");
                 jwtCookie.setMaxAge(60 * 60 * 2); // 2 hours
-                jwtCookie.setAttribute("SameSite", "Lax");
+                jwtCookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
                 response.addCookie(jwtCookie);
 
-                response.sendRedirect("http://localhost:5050/dashboard");
+                // Set refresh token cookie
+                Cookie refreshCookie = new Cookie(REFRESH_TOKEN, refreshToken);
+                refreshCookie.setHttpOnly(true);
+                refreshCookie.setSecure(false); // Set to true in production
+                refreshCookie.setPath("/");
+                refreshCookie.setMaxAge(60 * 60); // 1 hour (same as refresh token expiration)
+                refreshCookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
+                response.addCookie(refreshCookie);
+
+                response.sendRedirect(ApplicationConstants.SUCCESS_URL);
 
             } catch (Exception e) {
                 System.err.println("OAuth2 success handler error: " + e.getMessage());

@@ -125,7 +125,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String designation = "User"; // replace with actual retrieval
 
                 String newAccessToken = jwtUtil.generateToken(email, empId, designation);
-                Cookie jwtCookie = jwtUtil.createJwtCookie(newAccessToken);
+                Cookie jwtCookie = jwtUtil.createJwtCookie(newAccessToken, false);
                 response.addCookie(jwtCookie);
 
                 Claims claims = jwtUtil.extractAllClaims(newAccessToken);

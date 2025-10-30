@@ -213,6 +213,8 @@ public class UserService {
             // Generate JWT with empId & designation
             String token = jwtUtil.generateToken(user.getEmail(), empId, designation);
 
+            String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), empId, designation);
+
             // Set JWT cookie
             Cookie jwtCookie = new Cookie(JWT_TOKEN_TYPE, token);
             jwtCookie.setHttpOnly(true);
@@ -221,6 +223,15 @@ public class UserService {
             jwtCookie.setMaxAge(60 * 60 * 2); // 2 hours
             jwtCookie.setAttribute("SameSite", "Lax");
             response.addCookie(jwtCookie);
+
+            // Set refresh token cookie
+            Cookie refreshCookie = new Cookie("REFRESH_TOKEN", refreshToken);
+            refreshCookie.setHttpOnly(true);
+            refreshCookie.setSecure(false); // Set to true in production
+            refreshCookie.setPath("/");
+            refreshCookie.setMaxAge(60 * 60); // 1 hour (same as refresh token expiration)
+            refreshCookie.setAttribute("SameSite", "Lax");
+            response.addCookie(refreshCookie);
 
             response.setHeader("Access-Control-Allow-Credentials", "true");
 

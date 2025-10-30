@@ -15,21 +15,33 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}") // Reads secret key from application.properties
+    @Value("${jwt.secret}")
     private String secret;
 
-    private Key key; // Actual signing key
+    private Key key;
 
-    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 15; // 15 minutes
-    private final long REFRESH_TOKEN_EXPIRATION = 1000 * 60 * 60; // 1 hour
+    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60; // 15 minutes
+    private final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
+
+    public long getAccessTokenExpiration(){
+        return this.ACCESS_TOKEN_EXPIRATION;
+    }
+
+    public long getRefreshTokenExpiration(){
+        return this.REFRESH_TOKEN_EXPIRATION;
+    }
 
     @PostConstruct
     public void init() {
+        if (secret == null || secret.isEmpty()) {
+            throw new IllegalStateException("JWT secret is not set in application.properties!");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     // -------------------- Generate Access JWT --------------------
     public String generateToken(String email, int empId, String designation) {
+        checkKeyInitialized();
         return Jwts.builder()
                 .setSubject(email)
                 .claim("empId", empId)
@@ -41,22 +53,21 @@ public class JwtUtil {
     }
 
     // -------------------- Generate Refresh JWT --------------------
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(String email, int empId, String designation) {
+        checkKeyInitialized();
         return Jwts.builder()
                 .setSubject(email)
+                .claim("empId", empId)
+                .claim("designation", designation)
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
                 .signWith(key)
                 .compact();
     }
 
-    // -------------------- Extract email from token --------------------
-    public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
-    }
-
-    // -------------------- Extract all claims --------------------
+    // -------------------- Extract Claims --------------------
     public Claims extractAllClaims(String token) {
+        checkKeyInitialized();
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
@@ -64,8 +75,13 @@ public class JwtUtil {
                 .getBody();
     }
 
+    public String extractUsername(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
     // -------------------- Validate token --------------------
     public boolean validateToken(String token) {
+        checkKeyInitialized();
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
@@ -79,40 +95,41 @@ public class JwtUtil {
         return false;
     }
 
-    // -------------------- Check if token expired --------------------
-    public boolean isTokenExpired(String token) {
-        try {
-            Claims claims = extractAllClaims(token);
-            return claims.getExpiration().before(new Date());
-        } catch (ExpiredJwtException e) {
-            return true;
-        } catch (JwtException e) {
-            return true;
-        }
+    public boolean isTokenExpired(String token) throws ExpiredJwtException, JwtException {
+        return extractAllClaims(token).getExpiration().before(new Date());
     }
 
-    // -------------------- Create Access Token Cookie --------------------
-    public Cookie createJwtCookie(String token) {
+    // -------------------- Create JWT Cookies --------------------
+    public Cookie createJwtCookie(String token, boolean secure) {
+        checkKeyInitialized();
         Cookie cookie = new Cookie("JWT", token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set true in production
+        cookie.setSecure(secure); // true in production
         cookie.setPath("/");
-        cookie.setMaxAge((int) (ACCESS_TOKEN_EXPIRATION / 1000)); // expiry in seconds
+        cookie.setMaxAge((int) (ACCESS_TOKEN_EXPIRATION / 1000));
+        cookie.setAttribute("SameSite", "None"); // Cross-site if needed
         return cookie;
     }
 
-    // -------------------- Create Refresh Token Cookie --------------------
-    public Cookie createRefreshCookie(String refreshToken) {
+    public Cookie createRefreshCookie(String refreshToken, boolean secure) {
+        checkKeyInitialized();
         Cookie cookie = new Cookie("REFRESH_TOKEN", refreshToken);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set true in production
+        cookie.setSecure(secure);
         cookie.setPath("/");
         cookie.setMaxAge((int) (REFRESH_TOKEN_EXPIRATION / 1000));
+        cookie.setAttribute("SameSite", "None");
         return cookie;
     }
 
-    // -------------------- Extract email from Refresh Token --------------------
     public String getEmailFromRefreshToken(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    // -------------------- Utility --------------------
+    private void checkKeyInitialized() {
+        if (key == null) {
+            throw new IllegalStateException("JWT signing key is not initialized. Make sure @PostConstruct ran and secret is set.");
+        }
     }
 }

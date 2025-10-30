@@ -116,7 +116,7 @@ public class AuthController {
 
         // Generate new JWT with empId and designation
         String newJwt = jwtUtil.generateToken(email, user.getEmpId(), user.getDesignation());
-        response.addCookie(jwtUtil.createJwtCookie(newJwt));
+        response.addCookie(jwtUtil.createJwtCookie(newJwt, true));
 
         return ResponseEntity.ok(Map.of(
                 "token", newJwt,
