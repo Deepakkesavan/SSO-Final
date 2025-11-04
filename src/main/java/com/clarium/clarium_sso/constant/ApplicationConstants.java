@@ -84,10 +84,10 @@ public class ApplicationConstants {
     public static final String APPLICATION_CONSTANTS = "application/json";
     public static final String REFRESH_TOKEN = "REFRESH_TOKEN";
 
-
-    public static final String SUCCESS_URL = "http://10.2.0.4:32301/";
     public static final String JWT = "JWT";
-    public static final String FAILURE_URL = "http://localhost:5050/login?error=true";
     public static final String SAME_SITE = "SameSite";
     public static final String LAX = "Lax";
+
+    public static final String SUCCESS_URL = "https://people-dev.clarium.tech/ssoui/dashboard";
+    public static final String FAILURE_URL = "https://people-dev.clarium.tech/ssoui/login?error=true";
 }
