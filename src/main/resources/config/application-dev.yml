@@ -1,10 +1,7 @@
 spring:
-  application:
-    name: clarium-sso
-
   # Session management
   session:
-    store-type: none  # Don't persist sessions
+    store-type: none
     timeout: 1m       # Very short timeout for testing
     tracking-modes: cookie
     cookie:
@@ -27,7 +24,7 @@ spring:
               - email
               - https://graph.microsoft.com/User.Read
               - https://graph.microsoft.com/User.ReadBasic.All
-            redirect-uri: https://people-dev.clarium.tech/ssoapi/login/oauth2/code/
+            redirect-uri: http://localhost:8080/ssoapi/login/oauth2/code/
             client-name: Azure AD
         provider:
           azure:
@@ -70,6 +67,7 @@ spring:
 
 # Server configuration
 server:
+  forward-headers-strategy: framework
   servlet:
     context-path: /ssoapi
     session:
@@ -83,7 +81,7 @@ server:
         same-site: lax
 
 cors:
-  allowed-origins: http://localhost:5050/, http://localhost:4200, http://10.2.0.4:32301/, https://people-dev.clarium.tech/
+  allowed-origins: http://localhost:5050,http://localhost:4200,http://10.2.0.4:32301
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
@@ -98,4 +96,7 @@ logging:
 app:
   blocked-url: "http://localhost:8080"
 
+environmenturl:
+  successurl: "http://localhost:5050/ems"
+  failureurl: "http://localhost:5050/azure-login?error=true"
 

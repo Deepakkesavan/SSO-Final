@@ -45,7 +45,7 @@ public class ApplicationConstants {
     //JWT CONSTANTS
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String TOKEN_PREFIX = "Bearer";
-    public static final String JWT_TOKEN_TYPE = "jwt";
+    public static final String JWT_TOKEN_TYPE = "JWT";
 
     //OTP CONSTANTS
     public static final int OTP_EXPIRY_MINUTES = 10;
@@ -89,5 +89,5 @@ public class ApplicationConstants {
     public static final String LAX = "Lax";
 
     public static final String SUCCESS_URL = "https://people-dev.clarium.tech/ssoui/dashboard";
-    public static final String FAILURE_URL = "https://people-dev.clarium.tech/ssoui/login?error=true";
+    public static final String FAILURE_URL = "https://people-dev.clarium.tech/ssoui/azure-login?error=true";
 }

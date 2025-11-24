@@ -229,7 +229,7 @@ public class UserService {
             refreshCookie.setHttpOnly(true);
             refreshCookie.setSecure(false); // Set to true in production
             refreshCookie.setPath("/");
-            refreshCookie.setMaxAge(60 * 60); // 1 hour (same as refresh token expiration)
+            refreshCookie.setMaxAge(60 * 60 * 60); // 1 hour (same as refresh token expiration)
             refreshCookie.setAttribute("SameSite", "Lax");
             response.addCookie(refreshCookie);
 

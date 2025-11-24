@@ -20,7 +20,7 @@ public class JwtUtil {
 
     private Key key;
 
-    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60; // 15 minutes
+    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 60; // 1 Hour
     private final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
 
     public long getAccessTokenExpiration(){

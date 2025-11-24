@@ -1,6 +1,7 @@
 package com.clarium.clarium_sso.config;
 
 import com.clarium.clarium_sso.constant.ApplicationConstants;
+import com.clarium.clarium_sso.dto.EnvironmentUrl;
 import com.clarium.clarium_sso.security.JwtAuthFilter;
 import com.clarium.clarium_sso.service.UserService;
 import com.clarium.clarium_sso.util.JwtUtil;
@@ -15,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,7 +34,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 import static com.clarium.clarium_sso.constant.ApplicationConstants.ACCESS_DENIED;
@@ -55,17 +56,20 @@ public class SecurityConfig {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UserService userService;
+    private final EnvironmentUrl environmentUrl;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
                           UserDetailsService userDetailsService,
                           PasswordEncoder passwordEncoder,
                           JwtUtil jwtUtil,
-                          @Lazy UserService userService) {
+                          @Lazy UserService userService,
+                          EnvironmentUrl environmentUrl) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
+        this.environmentUrl = environmentUrl;
     }
 
     @Bean
@@ -75,6 +79,7 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+//                .csrf(csrf -> csrf.disable())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(requestHandler)
@@ -96,8 +101,9 @@ public class SecurityConfig {
                                 "/api/auth/auth-status",
                                 "/login/**",
                                 "/oauth2/**",
-                                "/logout",
-                                "/error"
+                                "/api/auth/logout",
+                                "/error",
+                                "/"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -108,7 +114,8 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2SuccessHandler())
                         .failureUrl(FAILURE_URL)
-                )
+
+                ).requestCache(RequestCacheConfigurer::disable)
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(customLogoutSuccessHandler())
@@ -117,9 +124,8 @@ public class SecurityConfig {
                         .clearAuthentication(true)
                         .permitAll()
                 )
-                // Fixed session management
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Changed to STATELESS for JWT
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .maximumSessions(1)
                         .maxSessionsPreventsLogin(false)
                 )
@@ -278,15 +284,28 @@ public class SecurityConfig {
                 refreshCookie.setHttpOnly(true);
                 refreshCookie.setSecure(false); // Set to true in production
                 refreshCookie.setPath("/");
-                refreshCookie.setMaxAge(60 * 60); // 1 hour (same as refresh token expiration)
+                refreshCookie.setMaxAge(60 * 60 * 60); // 1 hour (same as refresh token expiration)
                 refreshCookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
                 response.addCookie(refreshCookie);
+                System.out.println("Redirecting to SUCCESS_URL: " + environmentUrl.getSuccessurl());
+                String redirectUrl = request.getScheme() + "://" +
+                        request.getServerName() +
+                        ":" + request.getServerPort() +
+                        "/ssoui/dashboard";
 
-                response.sendRedirect(ApplicationConstants.SUCCESS_URL);
+                System.out.println("Redirecting to: " + environmentUrl.getSuccessurl());
+
+//              response.sendRedirect(redirectUrl);
+
+//                String finalRedirect = "https://people-dev.clarium.tech/ssoui/dashboard";
+//                String finalRedirect = "http://localhost:5050/dashboard";
+                System.out.println("[OAuth2] Redirecting user to: " + environmentUrl.getSuccessurl());
+                response.sendRedirect(environmentUrl.getSuccessurl());
+//
 
             } catch (Exception e) {
                 System.err.println("OAuth2 success handler error: " + e.getMessage());
-                response.sendRedirect("http://localhost:5050/login?error=oauth_processing_failed");
+                response.sendRedirect(environmentUrl.getFailureurl());
             }
         };
     }
