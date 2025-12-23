@@ -79,18 +79,18 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-//                .csrf(csrf -> csrf.disable())
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRequestHandler(requestHandler)
-                        .ignoringRequestMatchers(
-                                "/custom-login/auth/**",
-                                "/api/auth/**",
-                                "/login/**",
-                                "/oauth2/**",
-                                "/logout"
-                        )
-                )
+                .csrf(csrf -> csrf.disable())
+//                .csrf(csrf -> csrf
+//                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+//                        .csrfTokenRequestHandler(requestHandler)
+//                        .ignoringRequestMatchers(
+//                                "/custom-login/auth/**",
+//                                "/api/auth/**",
+//                                "/login/**",
+//                                "/oauth2/**",
+//                                "/logout"
+//                        )
+//                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/custom-login/auth/**",

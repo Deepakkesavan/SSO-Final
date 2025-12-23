@@ -46,13 +46,40 @@ public class AuthController {
 
     // -------------------- Auth Status --------------------
     @GetMapping("/auth-status")
-    public ResponseEntity<Map<String, Object>> authStatus() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAuthenticated = auth != null && auth.isAuthenticated() &&
-                !(auth instanceof AnonymousAuthenticationToken);
+    public ResponseEntity<Map<String, Object>> authStatus(HttpServletRequest request) {
 
-        return ResponseEntity.ok(Map.of("authenticated", isAuthenticated));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        Cookie[] cookies = request.getCookies();
+
+        boolean hasJwt = false;
+        boolean hasRefresh = false;
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("JWT".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isEmpty()) {
+                    hasJwt = true;
+                }
+                if ("REFRESH_TOKEN".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isEmpty()) {
+                    hasRefresh = true;
+                }
+            }
+        }
+
+        boolean isAuthenticated =
+                auth != null &&
+                        auth.isAuthenticated() &&
+                        !(auth instanceof AnonymousAuthenticationToken) &&
+                        hasJwt &&
+                        hasRefresh;
+
+        return ResponseEntity.ok(Map.of(
+                "authenticated", isAuthenticated,
+                "hasJwt", hasJwt,
+                "hasRefreshToken", hasRefresh
+        ));
     }
+
 
     // -------------------- User Profile --------------------
     @GetMapping("/user-profile")

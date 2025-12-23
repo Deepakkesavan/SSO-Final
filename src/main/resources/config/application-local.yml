@@ -24,7 +24,7 @@ spring:
               - email
               - https://graph.microsoft.com/User.Read
               - https://graph.microsoft.com/User.ReadBasic.All
-            redirect-uri: https://people-dev.clarium.tech/ssoapi/login/oauth2/code/
+            redirect-uri: http://localhost:8080/ssoapi/login/oauth2/code/
             client-name: Azure AD
         provider:
           azure:
@@ -34,6 +34,8 @@ spring:
             jwk-set-uri: https://login.microsoftonline.com/3dbd7e58-e2ea-40b8-bb5a-3ea2038c9535/discovery/v2.0/keys
             user-name-attribute: sub
             issuer-uri: https://login.microsoftonline.com/3dbd7e58-e2ea-40b8-bb5a-3ea2038c9535/v2.0
+
+
 
   jwt:
     secret: ${JWT_SECRET}
@@ -65,7 +67,7 @@ server:
         same-site: lax
 
 cors:
-  allowed-origins: https://people-dev.clarium.tech
+  allowed-origins: http://localhost:5050,http://localhost:4200,http://10.2.0.4:32301
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
@@ -80,7 +82,7 @@ logging:
 app:
   blocked-url: "http://localhost:8080"
 
-
 environmenturl:
-  successurl: "https://people-dev.clarium.tech/overview"
-  failureurl: "https://people-dev.clarium.tech/login?error=true"
+  successurl: "http://localhost:4200/overview"
+  failureurl: "http://localhost:4200/login?error=true"
+

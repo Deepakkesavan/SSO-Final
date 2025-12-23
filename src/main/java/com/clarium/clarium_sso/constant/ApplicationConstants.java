@@ -88,6 +88,6 @@ public class ApplicationConstants {
     public static final String SAME_SITE = "SameSite";
     public static final String LAX = "Lax";
 
-    public static final String SUCCESS_URL = "https://people-dev.clarium.tech/ssoui/dashboard";
+    public static final String SUCCESS_URL = "https://people-dev.clarium.tech/ssoui/ems";
     public static final String FAILURE_URL = "https://people-dev.clarium.tech/ssoui/azure-login?error=true";
 }
