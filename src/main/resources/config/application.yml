@@ -2,7 +2,7 @@ spring:
   application:
     name: clarium-sso
   profiles:
-    active: dev
+    active: local
   datasource:
     url: "jdbc:sqlserver://10.2.1.4:52752;databaseName=${DB_NAME};encrypt=true;trustServerCertificate=true"
     username: "${DB_USER}"

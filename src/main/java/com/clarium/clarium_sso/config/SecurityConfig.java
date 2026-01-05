@@ -79,18 +79,18 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-//                .csrf(csrf -> csrf
-//                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-//                        .csrfTokenRequestHandler(requestHandler)
-//                        .ignoringRequestMatchers(
-//                                "/custom-login/auth/**",
-//                                "/api/auth/**",
-//                                "/login/**",
-//                                "/oauth2/**",
-//                                "/logout"
-//                        )
-//                )
+//                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(requestHandler)
+                        .ignoringRequestMatchers(
+                                "/custom-login/auth/**",
+                                "/api/auth/**",
+                                "/login/**",
+                                "/oauth2/**",
+                                "/logout"
+                        )
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/custom-login/auth/**",
@@ -294,15 +294,8 @@ public class SecurityConfig {
                         "/ssoui/dashboard";
 
                 System.out.println("Redirecting to: " + environmentUrl.getSuccessurl());
-
-//              response.sendRedirect(redirectUrl);
-
-//                String finalRedirect = "https://people-dev.clarium.tech/ssoui/dashboard";
-//                String finalRedirect = "http://localhost:5050/dashboard";
                 System.out.println("[OAuth2] Redirecting user to: " + environmentUrl.getSuccessurl());
                 response.sendRedirect(environmentUrl.getSuccessurl());
-//
-
             } catch (Exception e) {
                 System.err.println("OAuth2 success handler error: " + e.getMessage());
                 response.sendRedirect(environmentUrl.getFailureurl());

@@ -83,4 +83,5 @@ app:
 
 environmenturl:
   successurl: "https://people-dev.clarium.tech/overview"
-  failureurl: "https://people-dev.clarium.tech/login?error=true"
+  failureurl: "http://localhost:4200/login?error=true"
+#  failureurl: "https://people-dev.clarium.tech/login?error=true"
