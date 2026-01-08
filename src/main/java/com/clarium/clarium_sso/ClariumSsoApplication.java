@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(EnvironmentUrl.class)
+@EnableConfigurationProperties
 public class ClariumSsoApplication {
 
 	public static void main(String[] args) {

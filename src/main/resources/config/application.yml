@@ -2,7 +2,7 @@ spring:
   application:
     name: clarium-sso
   profiles:
-    active: local
+    active: dev
   datasource:
     url: "jdbc:sqlserver://10.2.1.4:52752;databaseName=${DB_NAME};encrypt=true;trustServerCertificate=true"
     username: "${DB_USER}"
@@ -18,3 +18,17 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
+
+cors:
+  allowed-origins:
+    - "http://localhost:*"
+    - "https://*.clarium.tech"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true

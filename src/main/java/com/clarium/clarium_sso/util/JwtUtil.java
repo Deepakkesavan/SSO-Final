@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class JwtUtil {
@@ -20,7 +21,8 @@ public class JwtUtil {
 
     private Key key;
 
-    private final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 60; // 1 Hour
+    private static final long ACCESS_TOKEN_EXPIRATION =
+            TimeUnit.HOURS.toMillis(1);
     private final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7 days
 
     public long getAccessTokenExpiration(){

@@ -17,7 +17,7 @@ spring:
         registration:
           azure:
             client-id: 215b5640-18a9-4579-85f0-dee13df57b61
-            client-secret: tuz8Q~Zda7W6IEDsnrucsYvol4QecDkM7J68lbu~
+            client-secret: txu8Q~zcxhqoui7SJI~1QMkOF3cgvTMSw584IajE
             scope:
               - openid
               - profile
@@ -79,12 +79,6 @@ server:
         secure: false
         max-age: 1800
         same-site: lax
-
-cors:
-  allowed-origins: https://people-dev.clarium.tech
-  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-  allowed-headers: "*"
-  allow-credentials: true
 
 # Logging for debugging
 logging:

@@ -1,15 +1,5 @@
 spring:
   # Session management
-  session:
-    store-type: none
-    timeout: 1m       # Very short timeout for testing
-    tracking-modes: cookie
-    cookie:
-      name: JSESSIONID
-      http-only: true
-      secure: false    # Set to true in production
-      same-site: lax
-      max-age: 300     # 5 minutes
 
   security:
     oauth2:
@@ -17,7 +7,7 @@ spring:
         registration:
           azure:
             client-id: 215b5640-18a9-4579-85f0-dee13df57b61
-            client-secret: tuz8Q~Zda7W6IEDsnrucsYvol4QecDkM7J68lbu~
+            client-secret: txu8Q~zcxhqoui7SJI~1QMkOF3cgvTMSw584IajE
             scope:
               - openid
               - profile
@@ -66,12 +56,6 @@ server:
         max-age: 1800
         same-site: lax
 
-cors:
-  allowed-origins: http://localhost:5050,http://localhost:4200,http://10.2.0.4:32301
-  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-  allowed-headers: "*"
-  allow-credentials: true
-
 # Logging for debugging
 logging:
   level:
@@ -84,5 +68,5 @@ app:
 
 environmenturl:
   successurl: "http://localhost:4200/overview"
-  failureurl: "http://localhost:4200/login?error=true"
+  failureurl: "http://localhost:4200/login"
 

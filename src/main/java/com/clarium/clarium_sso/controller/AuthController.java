@@ -17,10 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -46,13 +48,79 @@ public class AuthController {
 
     // -------------------- Auth Status --------------------
     @GetMapping("/auth-status")
-    public ResponseEntity<Map<String, Object>> authStatus() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAuthenticated = auth != null && auth.isAuthenticated() &&
-                !(auth instanceof AnonymousAuthenticationToken);
+    public ResponseEntity<Map<String, Object>> authStatus(HttpServletRequest request) {
 
-        return ResponseEntity.ok(Map.of("authenticated", isAuthenticated));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        Cookie[] cookies = request.getCookies();
+
+        boolean hasJwt = false;
+        boolean hasRefresh = false;
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("JWT".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isEmpty()) {
+                    hasJwt = true;
+                }
+                if ("REFRESH_TOKEN".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isEmpty()) {
+                    hasRefresh = true;
+                }
+            }
+        }
+        // --- Bearer token check ---
+        String authHeader = request.getHeader("Authorization");
+        boolean hasBearerToken =
+                authHeader != null &&
+                        authHeader.startsWith("Bearer ") &&
+                        authHeader.length() > 7;
+
+        // --- Final authentication decision ---
+        boolean isAuthenticated =
+                auth != null &&
+                        auth.isAuthenticated() &&
+                        !(auth instanceof AnonymousAuthenticationToken) &&
+                        (hasJwt || hasBearerToken);
+
+        return ResponseEntity.ok(Map.of(
+                "authenticated", isAuthenticated,
+                "hasJwt", hasJwt,
+                "hasRefreshToken", hasRefresh
+        ));
     }
+
+    @GetMapping("/authtoken")
+    public ResponseEntity<?> microsoftLogin(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        // Check if user is already authenticated
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            // User is logged in, generate JWT
+            if (auth.getPrincipal() instanceof OAuth2User oauthUser) {
+                String email = oauthUser.getAttribute("email");
+
+                int empId = userService.getEmpIdByEmail(email);
+                UUID desgnId = userService.getDesgnIdByEmpId(empId);
+                String designation = userService.getDesignationById(desgnId);
+
+                String jwtToken = jwtUtil.generateToken(email, empId, designation);
+
+                Cookie jwtCookie = new Cookie("JWT", jwtToken);
+                jwtCookie.setHttpOnly(true);
+                jwtCookie.setSecure(true);
+                jwtCookie.setPath("/");
+                jwtCookie.setMaxAge(60 * 60 * 2);
+                response.addCookie(jwtCookie);
+
+                return ResponseEntity.ok(Map.of("authenticated", true, "authtoken", jwtToken));
+            }
+        }
+
+        // User not authenticated, redirect to Microsoft login
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", "/ssoapi/oauth2/authorization/azure")
+                .build();
+    }
+
 
     // -------------------- User Profile --------------------
     @GetMapping("/user-profile")
