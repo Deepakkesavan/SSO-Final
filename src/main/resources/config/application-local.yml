@@ -6,8 +6,8 @@ spring:
       client:
         registration:
           azure:
-            client-id: 
-            client-secret: 
+            client-id: 215b5640-18a9-4579-85f0-dee13df57b61
+            client-secret: txu8Q~zcxhqoui7SJI~1QMkOF3cgvTMSw584IajE
             scope:
               - openid
               - profile
@@ -67,6 +67,13 @@ app:
   blocked-url: "http://localhost:8080"
 
 environmenturl:
-  successurl: "http://localhost:4200/overview"
+  successurl: "http://localhost:4200/app"
   failureurl: "http://localhost:4200/login"
+
+redirecturl:
+  redirects:
+    - host: "localhost:8080"
+      redirect-url: "http://localhost:4200/overview"
+    - host: "localhost:8081"
+      redirect-url: "localhost:4300"
 

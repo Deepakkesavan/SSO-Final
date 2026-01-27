@@ -38,6 +38,20 @@ public class ApplicationConstants {
     public static final String USERNAME_ALREADY_TAKEN = "Username already taken. Please choose another.";
     public static final String EMAIL_NOT_REGISTERED_AS_EMPLOYEE = "Email not registered as employee. Signup denied";
 
+    // JWT ERROR MESSAGES
+    public static final String JWT_TOKEN_EXPIRED = "JWT token has expired";
+    public static final String JWT_TOKEN_INVALID = "Invalid JWT token";
+    public static final String JWT_TOKEN_MALFORMED = "Malformed JWT token";
+    public static final String JWT_SIGNATURE_INVALID = "JWT signature validation failed";
+    public static final String JWT_TOKEN_MISSING = "JWT token is missing";
+
+    // OAuth2 ERROR MESSAGES
+    public static final String OAUTH2_AUTHENTICATION_FAILED = "OAuth2 authentication failed";
+    public static final String OAUTH2_USER_INFO_NOT_FOUND = "Unable to retrieve user information from OAuth2 provider";
+    public static final String OAUTH2_ACCESS_DENIED = "Access denied by OAuth2 provider";
+    public static final String OAUTH2_INVALID_STATE = "Invalid OAuth2 state parameter";
+    public static final String OAUTH2_PROVIDER_ERROR = "OAuth2 provider error occurred";
+
     //ROLE CONSTANTS
     public static final String ROLE_USER = "ROLE_USER";
 

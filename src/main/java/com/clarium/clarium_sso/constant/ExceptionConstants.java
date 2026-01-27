@@ -16,5 +16,15 @@ public class ExceptionConstants {
     public static final String CODE_USERNAME_EXISTS = "USERNAME_EXISTS";
     public static final String CODE_CAPTCHA_EXPIRED = "CAPTCHA_EXPIRED";
     public static final String CODE_SESSION_EXPIRED = "SESSION_EXPIRED";
-}
 
+    // JWT Codes
+    public static final String CODE_JWT_INVALID = "JWT_INVALID";
+    public static final String CODE_JWT_EXPIRED = "JWT_EXPIRED";
+    public static final String CODE_JWT_MALFORMED = "JWT_MALFORMED";
+    public static final String CODE_JWT_SIGNATURE_INVALID = "JWT_SIGNATURE_INVALID";
+
+    // OAuth2 Codes
+    public static final String CODE_OAUTH2_FAILED = "OAUTH2_FAILED";
+    public static final String CODE_OAUTH2_USER_NOT_FOUND = "OAUTH2_USER_NOT_FOUND";
+    public static final String CODE_OAUTH2_ACCESS_DENIED = "OAUTH2_ACCESS_DENIED";
+}

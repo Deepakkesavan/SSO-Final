@@ -16,15 +16,15 @@ spring:
       client:
         registration:
           azure:
-            client-id: 
-            client-secret: 
+            client-id: 215b5640-18a9-4579-85f0-dee13df57b61
+            client-secret: txu8Q~zcxhqoui7SJI~1QMkOF3cgvTMSw584IajE
             scope:
               - openid
               - profile
               - email
               - https://graph.microsoft.com/User.Read
               - https://graph.microsoft.com/User.ReadBasic.All
-            redirect-uri: https://people-dev.clarium.tech/ssoapi/login/oauth2/code/
+            redirect-uri: https://sso-dev.clarium.tech/api/login/oauth2/code/
             client-name: Azure AD
         provider:
           azure:
@@ -53,7 +53,7 @@ spring:
 server:
   forward-headers-strategy: framework
   servlet:
-    context-path: /ssoapi
+    context-path: /api
     session:
       timeout: 30m
       tracking-modes: cookie
@@ -75,7 +75,9 @@ app:
   blocked-url: "http://localhost:8080"
 
 
-environmenturl:
-  successurl: "https://people-dev.clarium.tech/overview"
-  failureurl: "http://localhost:4200/login?error=true"
-#  failureurl: "https://people-dev.clarium.tech/login?error=true"
+redirecturl:
+  redirects:
+    - host: "localhost:8080"
+      redirect-url: "http://localhost:4200/overview"
+    - host: "localhost:8081"
+      redirect-url: "localhost:4300"
