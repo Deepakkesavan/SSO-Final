@@ -220,6 +220,7 @@ public class UserService {
             jwtCookie.setHttpOnly(true);
             jwtCookie.setSecure(false); // true in prod
             jwtCookie.setPath("/");
+            jwtCookie.setDomain("clarium.tech");
             jwtCookie.setMaxAge(60 * 60 * 2); // 2 hours
             jwtCookie.setAttribute("SameSite", "Lax");
             response.addCookie(jwtCookie);
@@ -229,6 +230,7 @@ public class UserService {
             refreshCookie.setHttpOnly(true);
             refreshCookie.setSecure(false); // Set to true in production
             refreshCookie.setPath("/");
+            refreshCookie.setDomain("clarium.tech");
             refreshCookie.setMaxAge(60 * 60 * 60); // 1 hour (same as refresh token expiration)
             refreshCookie.setAttribute("SameSite", "Lax");
             response.addCookie(refreshCookie);

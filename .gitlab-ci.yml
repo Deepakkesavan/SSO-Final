@@ -1,0 +1,10 @@
+variables:
+  PRIMARY_BRANCH: "main"
+  DEPLOY_REPO: 'git@gitlab.clarium.tech:clarium-org-apps/sso/sso-apps-deploy.git'
+  TARGET_BRANCH: "stage-dev"
+  MODULE: "sso-api"
+ 
+include:
+  - project: "devops/gitlab_yamls"
+    ref: "Framework_template"
+    file: "springboot.gitlab-ci.yml"

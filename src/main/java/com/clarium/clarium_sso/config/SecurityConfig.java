@@ -3,13 +3,15 @@ package com.clarium.clarium_sso.config;
 import com.clarium.clarium_sso.constant.ApplicationConstants;
 import com.clarium.clarium_sso.dto.Cors;
 import com.clarium.clarium_sso.dto.EnvironmentUrl;
-import com.clarium.clarium_sso.dto.RedirectUrl;
+import com.clarium.clarium_sso.dto.RedirectUrlResponse;
 import com.clarium.clarium_sso.security.JwtAuthFilter;
 import com.clarium.clarium_sso.security.OAuth2FailureHandler;
+import com.clarium.clarium_sso.service.RedirectUrlService;
 import com.clarium.clarium_sso.service.UserService;
 import com.clarium.clarium_sso.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +24,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -30,15 +35,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.clarium.clarium_sso.constant.ApplicationConstants.*;
@@ -56,7 +59,8 @@ public class SecurityConfig {
     private final EnvironmentUrl environmentUrl;
     private final OAuth2FailureHandler oAuth2FailureHandler;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RedirectUrl redirectUrl;
+    private final RedirectUrlResponse redirectUrlResponse;
+    private final RedirectUrlService redirectUrlService;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
                           UserDetailsService userDetailsService,
@@ -66,7 +70,8 @@ public class SecurityConfig {
                           EnvironmentUrl environmentUrl,
                           Cors corsConfig,
                           OAuth2FailureHandler oAuth2FailureHandler,
-                          RedirectUrl redirectUrl) {
+                          RedirectUrlResponse redirectUrlResponse,
+                          RedirectUrlService redirectUrlService) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
@@ -75,7 +80,8 @@ public class SecurityConfig {
         this.environmentUrl = environmentUrl;
         this.corsConfig = corsConfig;
         this.oAuth2FailureHandler = oAuth2FailureHandler;
-        this.redirectUrl = redirectUrl;
+        this.redirectUrlResponse = redirectUrlResponse;
+        this.redirectUrlService = redirectUrlService;
     }
 
     @Bean
@@ -176,8 +182,9 @@ public class SecurityConfig {
     private void clearCookie(HttpServletResponse response, String name) {
         Cookie cookie = new Cookie(name, "");
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set to true in production with HTTPS
+        cookie.setSecure(true); // Set to true in production with HTTPS
         cookie.setPath("/");
+        cookie.setDomain("clarium.tech");
         cookie.setMaxAge(0);
         cookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
         response.addCookie(cookie);
@@ -186,7 +193,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(corsConfig.getAllowedOrigins());
+        configuration.setAllowedOrigins(corsConfig.getAllowedOrigins());
         configuration.setAllowedMethods(corsConfig.getAllowedMethods());
         configuration.setAllowedHeaders(corsConfig.getAllowedHeaders());
         configuration.setAllowCredentials(corsConfig.isAllowCredentials());
@@ -264,6 +271,33 @@ public class SecurityConfig {
     }
 
     @Bean
+    public OAuth2AuthorizationRequestResolver customResolver(
+            ClientRegistrationRepository repo) {
+
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        repo, "/oauth2/authorization");
+
+        resolver.setAuthorizationRequestCustomizer(builder -> {
+            HttpServletRequest request =
+                    ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder
+                            .getRequestAttributes()))
+                            .getRequest();
+
+            String host = request.getHeader("Host");
+            String scheme = host.contains("localhost") ? "http" : "https";
+            String dynamicRedirect =
+                    scheme + "://" + host + "/ssoapi/login/oauth2/code/";
+
+            builder.redirectUri(dynamicRedirect);
+        });
+
+        return resolver;
+    }
+
+
+
+    @Bean
     public AuthenticationSuccessHandler oAuth2SuccessHandler() {
         return (request, response, authentication) -> {
             try {
@@ -281,14 +315,10 @@ public class SecurityConfig {
                     System.err.println("Error getting employee info: " + e.getMessage());
                     e.printStackTrace();
                 }
-                String host = request.getHeader("Host");
-                System.out.println("Request_Client_URL : " + host);
+                String hostname = request.getHeader("Host");
+                System.out.println("Request_Client_URL : " + hostname);
 
-                String Success_URL = redirectUrl.getRedirects().stream()
-                        .filter(r -> host.equals(r.getHost()))          // lambda required
-                        .map(RedirectUrl.Redirect::getRedirectUrl)      // method reference
-                        .findFirst()
-                        .orElse("");
+                String Success_URL = redirectUrlService.getSuccessUrl(hostname);
 
                 // Generate access token
                 String jwtToken = jwtUtil.generateToken(email, empId, designation);
@@ -301,6 +331,7 @@ public class SecurityConfig {
                 jwtCookie.setHttpOnly(true);
                 jwtCookie.setSecure(false); // Set to true in production
                 jwtCookie.setPath("/");
+                jwtCookie.setDomain("clarium.tech");
                 jwtCookie.setMaxAge(60 * 60 * 2); // 2 hours
                 jwtCookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
                 response.addCookie(jwtCookie);
@@ -319,12 +350,14 @@ public class SecurityConfig {
                 Cookie refreshCookie = new Cookie(REFRESH_TOKEN, refreshToken);
                 refreshCookie.setHttpOnly(true);
                 refreshCookie.setSecure(false); // Set to true in production
+
+                refreshCookie.setDomain("clarium.tech");
                 refreshCookie.setPath("/");
                 refreshCookie.setMaxAge(60 * 60 * 60); // 60 hours
                 refreshCookie.setAttribute(SAME_SITE, ApplicationConstants.LAX);
                 response.addCookie(refreshCookie);
 
-                response.sendRedirect(Success_URL);
+                response.sendRedirect("http://localhost:4200");
 
             } catch (Exception e) {
                 System.err.println("OAuth2 Success Handler Error: " + e.getMessage());

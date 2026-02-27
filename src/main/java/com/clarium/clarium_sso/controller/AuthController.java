@@ -3,7 +3,6 @@ package com.clarium.clarium_sso.controller;
 import com.clarium.clarium_sso.dto.AzureUserAttributes;
 import com.clarium.clarium_sso.dto.LoginFailure;
 import com.clarium.clarium_sso.dto.UserAttributes;
-import com.clarium.clarium_sso.repository.UserRepository;
 import com.clarium.clarium_sso.service.AuthService;
 import com.clarium.clarium_sso.service.CustomUserDetails;
 import com.clarium.clarium_sso.service.LogoutService;
@@ -32,17 +31,14 @@ public class AuthController {
     private final UserService userService;
     private final LogoutService logoutService;
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
 
     public AuthController(AuthService authService,
                           LogoutService logoutService,
                           JwtUtil jwtUtil,
-                          UserRepository userRepository,
                           UserService userService) {
         this.authService = authService;
         this.logoutService = logoutService;
         this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
         this.userService = userService;
     }
 
@@ -75,14 +71,14 @@ public class AuthController {
                         authHeader.length() > 7;
 
         // --- Final authentication decision ---
-        boolean isAuthenticated =
+        boolean isAuthenticatedFromAzure =
                 auth != null &&
                         auth.isAuthenticated() &&
                         !(auth instanceof AnonymousAuthenticationToken) &&
                         (hasJwt || hasBearerToken);
 
         return ResponseEntity.ok(Map.of(
-                "authenticated", isAuthenticated,
+                "authenticated", isAuthenticatedFromAzure,
                 "hasJwt", hasJwt,
                 "hasRefreshToken", hasRefresh
         ));
@@ -108,6 +104,8 @@ public class AuthController {
                 jwtCookie.setHttpOnly(true);
                 jwtCookie.setSecure(true);
                 jwtCookie.setPath("/");
+
+                jwtCookie.setDomain("clarium.tech");
                 jwtCookie.setMaxAge(60 * 60 * 2);
                 response.addCookie(jwtCookie);
 
@@ -121,12 +119,12 @@ public class AuthController {
                 .build();
     }
 
-
     // -------------------- User Profile --------------------
     @GetMapping("/user-profile")
     public ResponseEntity<UserAttributes> getUserProfile(HttpServletResponse response) {
         AzureUserAttributes azureUser = authService.getCurrentUser(response);
         if (!azureUser.isAuthenticated()) return ResponseEntity.ok(null);
+        System.out.println("Testing User Profile");
         return ResponseEntity.ok(azureUser.getUserAttributes());
     }
 

@@ -108,6 +108,7 @@ public class JwtUtil {
         cookie.setHttpOnly(true);
         cookie.setSecure(secure); // true in production
         cookie.setPath("/");
+        cookie.setDomain("clarium.tech");
         cookie.setMaxAge((int) (ACCESS_TOKEN_EXPIRATION / 1000));
         cookie.setAttribute("SameSite", "None"); // Cross-site if needed
         return cookie;
@@ -119,6 +120,7 @@ public class JwtUtil {
         cookie.setHttpOnly(true);
         cookie.setSecure(secure);
         cookie.setPath("/");
+        cookie.setDomain("clarium.tech");
         cookie.setMaxAge((int) (REFRESH_TOKEN_EXPIRATION / 1000));
         cookie.setAttribute("SameSite", "None");
         return cookie;

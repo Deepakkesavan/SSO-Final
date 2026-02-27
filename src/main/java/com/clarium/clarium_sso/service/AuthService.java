@@ -152,6 +152,7 @@ public class AuthService {
             cookie.setHttpOnly(true);
             cookie.setSecure(false); // Set to true in production with HTTPS
             cookie.setPath("/");
+            cookie.setDomain("clarium.tech");
             cookie.setMaxAge(24 * 60 * 60); // 1 day expiry
 
             response.addCookie(cookie);

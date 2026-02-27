@@ -110,6 +110,7 @@ public class LogoutService {
         // Method 1: Standard cookie clearing
         Cookie expiredCookie = new Cookie(cookieName, "");
         expiredCookie.setPath("/");
+        expiredCookie.setDomain("clarium.tech");
         expiredCookie.setMaxAge(0);
         expiredCookie.setHttpOnly(true);
         response.addCookie(expiredCookie);

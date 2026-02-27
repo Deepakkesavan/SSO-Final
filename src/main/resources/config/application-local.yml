@@ -66,14 +66,6 @@ logging:
 app:
   blocked-url: "http://localhost:8080"
 
-environmenturl:
-  successurl: "http://localhost:4200/app"
-  failureurl: "http://localhost:4200/login"
 
-redirecturl:
-  redirects:
-    - host: "localhost:8080"
-      redirect-url: "http://localhost:4200/overview"
-    - host: "localhost:8081"
-      redirect-url: "localhost:4300"
+
 

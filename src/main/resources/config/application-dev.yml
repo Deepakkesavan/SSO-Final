@@ -17,7 +17,7 @@ spring:
         registration:
           azure:
             client-id: 215b5640-18a9-4579-85f0-dee13df57b61
-            client-secret: txu8Q~zcxhqoui7SJI~1QMkOF3cgvTMSw584IajE
+            client-secret: txu8Q~zcxhqoui7SJI~1QMkOF3cgvTMSw584IajE 
             scope:
               - openid
               - profile
@@ -53,7 +53,7 @@ spring:
 server:
   forward-headers-strategy: framework
   servlet:
-    context-path: /api
+    context-path: /ssoapi
     session:
       timeout: 30m
       tracking-modes: cookie
@@ -71,13 +71,3 @@ logging:
     org.springframework.web: DEBUG
     com.clarium.clarium_sso.service.LogoutService: DEBUG
 
-app:
-  blocked-url: "http://localhost:8080"
-
-
-redirecturl:
-  redirects:
-    - host: "localhost:8080"
-      redirect-url: "http://localhost:4200/overview"
-    - host: "localhost:8081"
-      redirect-url: "localhost:4300"
